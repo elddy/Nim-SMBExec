@@ -73,6 +73,12 @@ proc convertToByteArray(tab: OrderedTable): seq[byte] =
     for v in tab.values:
         result.add(v)
 
+proc GetUInt16DataLength(start: int, data: seq[byte]): uint16 =
+    let num = ($(data[start]) & $(data[start+1])).parseInt()
+    let data_length: uint16 = uint16(num)
+
+    return data_length
+
 proc getSMBv2NegoPacket*(): string =
     let process_ID = getCurrentProcessId().toHex().split("00").join()
     var reversing = (process_ID.hexToPSShellcode().split(","))
@@ -120,5 +126,12 @@ proc getSMBv2NTLMNego*(): string =
     var strPacket: string
     for p in fullPacket:
         strPacket &= p.toHex()
-    echo (strPacket).parseHexStr()
+    # echo (strPacket).parseHexStr()
     return (strPacket).parseHexStr()
+
+proc getSMBv2NTLMSSP*(client_receive: string): seq[byte] =
+    
+    let ntlmSSP = client_receive.toHex()
+    let ntlmSSP_index = ntlmSSP.find("4E544C4D53535000")
+    let ntlmSSP_bytes_index = ntlmSSP_index / 2 
+    let domain_length = GetUInt16DataLength(ntlmSSP_bytes_index + 12, client_receive)

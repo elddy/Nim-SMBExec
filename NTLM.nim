@@ -19,7 +19,7 @@ proc NewPacketNTLMSSPNegotiate*(negotiateFlags: seq[byte], version: seq[byte]): 
         ASN_length_2 = @[(NTLMSSP_length[0] + 22).byte]
         ASN_length_3 = @[(NTLMSSP_length[0] + 20).byte]
         ASN_length_4 = @[(NTLMSSP_length[0] + 2).byte]
-    echo NTLMSSP_length
+    # echo NTLMSSP_length
     var NTLMSSPNegotiate = initOrderedTable[string, seq[byte]]()#     NTLMSSPNegotiate = New-Object System.Collections.Specialized.OrderedDictionary
     NTLMSSPNegotiate.add("InitialContextTokenID",@[0x60.byte])#     NTLMSSPNegotiate.add("InitialContextTokenID",@[0x60.byte])
 
@@ -54,7 +54,7 @@ proc NewPacketNTLMSSPNegotiate*(negotiateFlags: seq[byte], version: seq[byte]): 
     return NTLMSSPNegotiate
 
 proc NewPacketSMB2SessionSetupRequest*(securityBlob: seq[byte]): OrderedTable[string, seq[byte]] =
-    echo "Yes, ", len(securityBlob).byte
+    # echo "Yes, ", len(securityBlob).byte
     var security_buffer_length = @[len(securityBlob).byte, 0x00.byte] #([System.BitConverter]::GetBytes($SecurityBlob.Length))[0,1]
 
     var SMB2SessionSetupRequest = initOrderedTable[string, seq[byte]]()
