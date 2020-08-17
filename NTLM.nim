@@ -70,5 +70,25 @@ proc NewPacketSMB2SessionSetupRequest*(securityBlob: seq[byte]): OrderedTable[st
 
     return SMB2SessionSetupRequest 
 
+proc NewPacketNTLMSSPAuth*(NTLMResponse: seq[byte]): OrderedTable[string, seq[byte]] =
+    let 
+        NTLMSSP_length = @[len(NTLMResponse).byte, 0x00.byte] # [Byte[]]$NTLMSSP_length = ([System.BitConverter]::GetBytes($NTLMResponse.Length))[1,0]
+        ASN_length_1 = @[(len(NTLMResponse) + 12).byte, 0x00.byte] # [Byte[]]$ASN_length_1 = ([System.BitConverter]::GetBytes($NTLMResponse.Length + 12))[1,0]
+        ASN_length_2 = @[(len(NTLMResponse) + 8).byte, 0x00.byte] # [Byte[]]$ASN_length_2 = ([System.BitConverter]::GetBytes($NTLMResponse.Length + 8))[1,0]
+        ASN_length_3 = @[(len(NTLMResponse) + 4).byte, 0x00.byte] # [Byte[]]$ASN_length_3 = ([System.BitConverter]::GetBytes($NTLMResponse.Length + 4))[1,0]
+
+    var NTLMSSPAuth = initOrderedTable[string, seq[byte]]() # $NTLMSSPAuth = New-Object System.Collections.Specialized.OrderedDictionary
+    NTLMSSPAuth.add("ASNID",@[0xa1.byte, 0x82.byte]) # $NTLMSSPAuth.Add("ASNID",[Byte[]](0xa1,0x82))
+    NTLMSSPAuth.add("ASNLength", ASN_length_1) # $NTLMSSPAuth.Add("ASNLength",$ASN_length_1)
+    NTLMSSPAuth.add("ASNID2",@[0x30.byte, 0x82.byte]) # $NTLMSSPAuth.Add("ASNID2",[Byte[]](0x30,0x82))
+    NTLMSSPAuth.add("ASNLength2", ASN_length_2) # $NTLMSSPAuth.Add("ASNLength2",$ASN_length_2)
+    NTLMSSPAuth.add("ASNID3",@[0xa2.byte,0x82.byte]) # $NTLMSSPAuth.Add("ASNID3",[Byte[]](0xa2,0x82))
+    NTLMSSPAuth.add("ASNLength3",ASN_length_3) # $NTLMSSPAuth.Add("ASNLength3",$ASN_length_3)
+    NTLMSSPAuth.add("NTLMSSPID", @[0x04.byte,0x82.byte]) # $NTLMSSPAuth.Add("NTLMSSPID",[Byte[]](0x04,0x82))
+    NTLMSSPAuth.add("NTLMSSPLength", NTLMSSP_length) # $NTLMSSPAuth.Add("NTLMSSPLength",$NTLMSSP_length)
+    NTLMSSPAuth.add("NTLMResponse", NTLMResponse) # $NTLMSSPAuth.Add("NTLMResponse",$NTLMResponse)
+
+    return NTLMSSPAuth 
+
 when isMainModule:
     discard NewPacketNTLMSSPNegotiate(@[], @[])
