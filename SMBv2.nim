@@ -2,7 +2,9 @@
     SMBv2 Negotiate
 ]#
 
-import tables, os, strutils, regex, sequtils, algorithm, NTLM
+import tables, os, strutils, regex, sequtils, algorithm, NTLM, nativesockets, hmac, random
+
+randomize()
 
 var messageID = 1
 
@@ -73,11 +75,20 @@ proc convertToByteArray(tab: OrderedTable): seq[byte] =
     for v in tab.values:
         result.add(v)
 
-proc GetUInt16DataLength(start: int, data: seq[byte]): uint16 =
-    let num = ($(data[start]) & $(data[start+1])).parseInt()
-    let data_length: uint16 = uint16(num)
+proc GetUInt16DataLength(start: int, data: seq[byte]): int =
+    let data_length = ($(data[start]) & $(data[start+1])).parseInt()
 
     return data_length
+
+proc stringToByteArray(str: string): seq[byte] =
+    for i in str.toHex().hexToPSShellcode().split(","):
+        result.add(i.parseHexInt().byte)
+
+proc hexToNormalHex*(hex: string): string =
+    var a = findAndCaptureAll(hex, re"..")
+    for b in a:
+        if b != "00":
+            result.add(b)
 
 proc getSMBv2NegoPacket*(): string =
     let process_ID = getCurrentProcessId().toHex().split("00").join()
@@ -103,7 +114,7 @@ proc getSMBv2NegoPacket*(): string =
     return (strPacket).parseHexStr()
 
 
-proc getSMBv2NTLMNego*(): string =
+proc getSMBv2NTLMNego*(signing: bool): string =
     inc messageID
     let process_ID = getCurrentProcessId().toHex().split("00").join()
     var reversing = (process_ID.hexToPSShellcode().split(","))
@@ -115,8 +126,13 @@ proc getSMBv2NTLMNego*(): string =
     let 
         tree_ID = @[0x00.byte,0x00.byte,0x00.byte,0x00.byte]
         session_ID = @[0x00.byte,0x00.byte,0x00.byte,0x00.byte,0x00.byte,0x00.byte,0x00.byte,0x00.byte]
+    
+    var negotiate_flags: seq[byte]
+    if signing:
         negotiate_flags = @[0x15.byte,0x82.byte,0x08.byte,0xa0.byte] # Signing true
-        # negotiate_flags = @[0x05.byte,0x80.byte,0x08.byte,0xa0.byte] # Signing false
+    else:
+        negotiate_flags = @[0x05.byte,0x80.byte,0x08.byte,0xa0.byte] # Signing false
+    
     let
         smb2Header = convertToByteArray NewPacketSMB2Header(@[0x01.byte,0x00.byte], @[0x1f.byte,0x00.byte], false, @[message_ID.byte], revBytes, tree_ID, session_ID)
         NTLMSSPnegotiate = convertToByteArray NewPacketNTLMSSPNegotiate(negotiate_flags, @[])
@@ -126,12 +142,40 @@ proc getSMBv2NTLMNego*(): string =
     var strPacket: string
     for p in fullPacket:
         strPacket &= p.toHex()
-    # echo (strPacket).parseHexStr()
     return (strPacket).parseHexStr()
 
-proc getSMBv2NTLMSSP*(client_receive: string): seq[byte] =
+proc getSMBv2NTLMSSP*(client_receive: string, hash: string, domain: string, username: string): seq[byte] =
     
     let ntlmSSP = client_receive.toHex()
     let ntlmSSP_index = ntlmSSP.find("4E544C4D53535000")
-    let ntlmSSP_bytes_index = ntlmSSP_index / 2 
-    let domain_length = GetUInt16DataLength(ntlmSSP_bytes_index + 12, client_receive)
+    let ntlmSSP_bytes_index = (ntlmSSP_index / 2).toInt()
+    let domain_length = GetUInt16DataLength(ntlmSSP_bytes_index + 12, client_receive.stringToByteArray())
+    let target_length = GetUInt16DataLength(ntlmSSP_bytes_index + 40, client_receive.stringToByteArray())
+    let session_ID = client_receive[44..51]
+    let ntlm_challenge = client_receive[(ntlmSSP_bytes_index + 24)..(ntlmSSP_bytes_index + 31)]
+    let target_details = client_receive[(ntlmSSP_bytes_index + 56 + domain_length)..(ntlmSSP_bytes_index + 55 + domain_length + target_length)]
+    let target_time_bytes = target_details[(len(target_details) - 12)..(len(target_details) - 5)]
+    var ntlm_hash_bytes: seq[byte]
+    let temp = hash.hexToPSShellcode().split(",")
+    for i in temp:
+        ntlm_hash_bytes.add(i.parseInt().byte)
+    let auth_hostname = getHostname()
+    let auth_hostname_bytes = auth_hostname.stringToByteArray()
+    let auth_domain_bytes = domain.stringToByteArray()
+    let auth_username_bytes = username.stringToByteArray()
+    let auth_domain_length = len(auth_domain_bytes).byte
+    let auth_username_length = len(auth_username_bytes).byte
+    let auth_hostname_length = len(auth_hostname_bytes).byte
+    let auth_domain_offset = @[0x40.byte,0x00.byte,0x00.byte,0x00.byte]
+    let auth_username_offset = (len(auth_domain_bytes) + 64).byte
+    let auth_hostname_offset = (len(auth_domain_bytes) + len(auth_username_bytes) + 64).byte
+    let auth_LM_offset = (len(auth_domain_bytes) + len(auth_username_bytes) + len(auth_hostname_bytes) + 64).byte
+    let auth_NTLM_offset = (len(auth_domain_bytes) + len(auth_username_bytes) + len(auth_hostname_bytes) + 88).byte
+    let hmac_MD5_key = ntlm_hash_bytes
+    let username_and_target = username.toUpper()
+    let username_and_target_bytes = username_and_target.stringToByteArray().concat(auth_domain_bytes)
+    let ntlmv2_hash = hmac_md5(hmac_MD5_key.join(), username_and_target_bytes.join())
+    var client_challenge: string
+    for i in 1..8:
+        client_challenge.add(rand(1..255).toHex().hexToNormalHex())
+    let client_challenge_bytes = client_challenge.stringToByteArray()
