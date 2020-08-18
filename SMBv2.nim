@@ -27,16 +27,16 @@ proc GetUInt16DataLength(start: int, data: seq[byte]): int =
 
     return data_length
 
-proc userOrDomainToByteArray(str: string): seq[byte] =
+proc unicodeGetBytes*(str: string): seq[byte] =
     for i in str.toHex().hexToPSShellcode().split(","):
         result.add(i.parseHexInt().byte)
         result.add(0x00.byte)
 
-proc stringToByteArray(str: string): seq[byte] =
+proc stringToByteArray*(str: string): seq[byte] =
     for i in str.toHex().hexToPSShellcode().split(","):
         result.add(i.parseHexInt().byte)
 
-proc hexToByteArray(str: string): seq[byte] =
+proc hexToByteArray*(str: string): seq[byte] =
     for i in str.hexToPSShellcode().split(","):
         result.add(i.parseHexInt().byte)
 
@@ -176,9 +176,9 @@ proc getSMBv2NTLMSSP*(client_receive: string, hash: string, domain: string, user
     var ntlm_hash_bytes = hash.parseHexStr()
 
     let auth_hostname = getHostname()
-    let auth_hostname_bytes = auth_hostname.userOrDomainToByteArray()
-    let auth_domain_bytes = domain.userOrDomainToByteArray()
-    let auth_username_bytes = username.userOrDomainToByteArray()
+    let auth_hostname_bytes = auth_hostname.unicodeGetBytes()
+    let auth_domain_bytes = domain.unicodeGetBytes()
+    let auth_username_bytes = username.unicodeGetBytes()
 
     let auth_domain_length = @[len(auth_domain_bytes).byte, 0x00.byte]
     let auth_username_length = @[len(auth_username_bytes).byte, 0x00.byte]
@@ -196,7 +196,7 @@ proc getSMBv2NTLMSSP*(client_receive: string, hash: string, domain: string, user
 
     let hmac_MD5_key = ntlm_hash_bytes
     let username_and_target = username.toUpper()
-    let username_and_target_bytes = username_and_target.userOrDomainToByteArray().concat(auth_domain_bytes)
+    let username_and_target_bytes = username_and_target.unicodeGetBytes().concat(auth_domain_bytes)
     
     var 
         newData: seq[string]
@@ -287,8 +287,6 @@ proc getSMBv2NTLMAuth*(NTLMSSP_response: seq[byte]): string =
     let 
         tree_ID = @[0x00.byte,0x00.byte,0x00.byte,0x00.byte]
 
-    echo messageID.toHex().hexToNormalHex().hexToByteArray()
-
     let 
         smb2Header = convertToByteArray NewPacketSMB2Header(@[0x01.byte,0x00.byte], @[0x01.byte,0x00.byte], false, @[messageID.byte], revBytes, tree_ID, session_ID)
         NTLMSSP_auth = convertToByteArray NewPacketNTLMSSPAuth(NTLMSSP_response)
@@ -306,7 +304,7 @@ proc getSMBv2NTLMAuth*(NTLMSSP_response: seq[byte]): string =
 when isMainModule:
     let 
         key = "47bf8039a8506cd67c524a03ff84ba4e".parseHexStr() # Good
-        data = "ADMINISTRATOR".userOrDomainToByteArray().concat(".".userOrDomainToByteArray()) # Good
+        data = "ADMINISTRATOR".unicodeGetBytes().concat(".".unicodeGetBytes()) # Good
     var 
         newData: seq[string]
     for j in data:
