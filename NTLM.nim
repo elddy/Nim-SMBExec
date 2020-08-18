@@ -71,10 +71,11 @@ proc NewPacketNTLMSSPNegotiate*(negotiateFlags: seq[byte], version: seq[byte]): 
 
 proc NewPacketSMB2SessionSetupRequest*(securityBlob: seq[byte]): OrderedTable[string, seq[byte]] =
     # echo "Yes, ", len(securityBlob).byte
-    var security_buffer_length = len(securityBlob).toHex().hexToNormalHex().hexToByteArray().concat(@[0x00.byte]) #([System.BitConverter]::GetBytes($SecurityBlob.Length))[0,1]
-
+    var security_buffer_length = len(securityBlob).toHex().hexToNormalHex().hexToByteArray().concat(@[0x00.byte])[0..1] #([System.BitConverter]::GetBytes($SecurityBlob.Length))[0,1]
+    if security_buffer_length[1] != 0:
+        security_buffer_length = security_buffer_length.reversed()
     var SMB2SessionSetupRequest = initOrderedTable[string, seq[byte]]()
-    SMB2SessionSetupRequest.add("StructureSize",@[0x00.byte, 0x00.byte, 0x19.byte,0x00.byte])
+    SMB2SessionSetupRequest.add("StructureSize",@[0x19.byte,0x00.byte])
     SMB2SessionSetupRequest.add("Flags",@[0x00.byte])
     SMB2SessionSetupRequest.add("SecurityMode",@[0x01.byte])
     SMB2SessionSetupRequest.add("Capabilities",@[0x00.byte,0x00.byte,0x00.byte,0x00.byte])
@@ -88,10 +89,10 @@ proc NewPacketSMB2SessionSetupRequest*(securityBlob: seq[byte]): OrderedTable[st
 
 proc NewPacketNTLMSSPAuth*(NTLMResponse: seq[byte]): OrderedTable[string, seq[byte]] =
     let 
-        NTLMSSP_length = len(NTLMResponse).toHex().hexToNormalHex().hexToByteArray().concat(@[0x00.byte]) # [Byte[]]$NTLMSSP_length = ([System.BitConverter]::GetBytes($NTLMResponse.Length))[1,0]
-        ASN_length_1 = (len(NTLMResponse) + 12).toHex().hexToNormalHex().hexToByteArray().concat(@[0x00.byte]) # [Byte[]]$ASN_length_1 = ([System.BitConverter]::GetBytes($NTLMResponse.Length + 12))[1,0]
-        ASN_length_2 = (len(NTLMResponse) + 8).toHex().hexToNormalHex().hexToByteArray().concat(@[0x00.byte]) # [Byte[]]$ASN_length_2 = ([System.BitConverter]::GetBytes($NTLMResponse.Length + 8))[1,0]
-        ASN_length_3 = (len(NTLMResponse) + 4).toHex().hexToNormalHex().hexToByteArray().concat(@[0x00.byte]) # [Byte[]]$ASN_length_3 = ([System.BitConverter]::GetBytes($NTLMResponse.Length + 4))[1,0]
+        NTLMSSP_length = len(NTLMResponse).toHex().hexToNormalHex().hexToByteArray().concat(@[0x00.byte])[..1] # [Byte[]]$NTLMSSP_length = ([System.BitConverter]::GetBytes($NTLMResponse.Length))[1,0]
+        ASN_length_1 = (len(NTLMResponse) + 12).toHex().hexToNormalHex().hexToByteArray().concat(@[0x00.byte])[..1] # [Byte[]]$ASN_length_1 = ([System.BitConverter]::GetBytes($NTLMResponse.Length + 12))[1,0]
+        ASN_length_2 = (len(NTLMResponse) + 8).toHex().hexToNormalHex().hexToByteArray().concat(@[0x00.byte])[..1] # [Byte[]]$ASN_length_2 = ([System.BitConverter]::GetBytes($NTLMResponse.Length + 8))[1,0]
+        ASN_length_3 = (len(NTLMResponse) + 4).toHex().hexToNormalHex().hexToByteArray().concat(@[0x00.byte])[..1] # [Byte[]]$ASN_length_3 = ([System.BitConverter]::GetBytes($NTLMResponse.Length + 4))[1,0]
 
     var NTLMSSPAuth = initOrderedTable[string, seq[byte]]() # $NTLMSSPAuth = New-Object System.Collections.Specialized.OrderedDictionary
     NTLMSSPAuth.add("ASNID",@[0xa1.byte, 0x82.byte]) # $NTLMSSPAuth.Add("ASNID",[Byte[]](0xa1,0x82))

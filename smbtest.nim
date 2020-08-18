@@ -23,7 +23,7 @@ proc recvPacketForNTLM(sock: Socket, bufSize, timeout: int): string =
         discard
 
 proc checkSigning(data: seq[string]): bool =
-    if data[70] == "01":
+    if data[70] == "03":
         result = true 
 
 proc checkDialect(data: seq[string]): string =
@@ -62,7 +62,6 @@ recvClient = sock.recvPacket(1024, 100)
 ## SMBv2NTLM negotiate
 sock.send(getSMBv2NTLMNego(signing))
 response = sock.recvPacketForNTLM(1024, 100)
-echo response.len()
 ## Pass the hash
 let 
     user = "administrator"
