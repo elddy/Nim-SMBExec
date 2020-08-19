@@ -1,21 +1,13 @@
-import net, strutils, SMBv1, SMBv2, NTLM, hashlib/rhash/md4, encodings
-
+import net, strutils, SMBv1, SMBv2, NTLM, hashlib/rhash/md4, encodings, HelpUtil
+from ExecStages import execStages, stage, Stage
 type
     SMB2* = ref object
-        socket:      Socket
+        socket*:      Socket
         target*:      string
         domain*:      string
         user*:        string
         hash*:        string
         serviceName*: string
-
-proc recvPacket(socket: Socket, bufSize, timeout: int): seq[string] =
-    var buf: string
-    try:
-        while socket.recv(buf, 1, timeout) > 0:
-            result.add(buf.toHex())
-    except:
-        discard
 
 proc recvPacketForNTLM(socket: Socket, bufSize, timeout: int): string =
     var buf: string
@@ -28,10 +20,9 @@ proc recvPacketForNTLM(socket: Socket, bufSize, timeout: int): string =
 proc newSMB2*(target: string, domain: string, user: string, hash: string, serviceName: string = "kaka"): SMB2 =
     result = SMB2(socket: newSocket(), target: target, domain: domain, user: user, hash: hash, serviceName: serviceName)
 
-proc connect*(smb: SMB2): bool =
+proc connect*(smb: SMB2): seq[string] =
     var 
         recvClient: seq[string]
-        signing: bool
         response: string
     
     ## Connect
@@ -67,16 +58,21 @@ proc connect*(smb: SMB2): bool =
 
     if checkAuth recvClient:
         echo "Successfully logged on!"
-        result = true
+        stage = TreeConnect
     else:
         echo "Login failed"
-        result = false
+        stage = Exit
+
+    result = recvClient
+
+proc exec*(smb: SMB2, command: string, recvClient: seq[string]): bool =
+    echo execStages(smb.target, smb.serviceName, command, recvClient)
 
 proc close*(smb: SMB2): bool =
     smb.socket.close()
 
-proc toNTLMHash*(password: string): string =
-    # Counts the hash for empty string, returns a RHASH_MD4 object
-    var hash = count[RHASH_MD4](password.convert("UTF-16"))
+# proc toNTLMHash*(password: string): string =
+#     # Counts the hash for empty string, returns a RHASH_MD4 object
+#     var hash = count[RHASH_MD4](password.convert("UTF-16"))
 
-    return $hash
+#     return $hash

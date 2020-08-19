@@ -14,6 +14,8 @@ var
     session_ID*: seq[byte] = @[0x00.byte,0x00.byte,0x00.byte,0x00.byte,0x00.byte,0x00.byte,0x00.byte,0x00.byte]
     process_ID*: seq[byte] = pidToByteArray(getCurrentProcessId())
     tree_ID*: seq[byte] = @[0x00.byte,0x00.byte,0x00.byte,0x00.byte]
+    signing*: bool
+    HMAC_SHA256_key*: seq[byte]
 
 proc NewPacketSMB2Header*(command: seq[byte], creditRequest: seq[byte], signing: bool, messageID: seq[byte], processID, treeID, sessionID: seq[byte]): OrderedTable[string, seq[byte]] =
     var flags: seq[byte]
@@ -173,15 +175,12 @@ proc getSMBv2NTLMSSP*(client_receive: string, hash: string, domain: string, user
     var 
         session_base_key: MD5Digest
         session_key: MD5Digest
-        HMAC_SHA256: SHA256Digest
 
     if signing:
         session_base_key = hmac_md5(($ntlmv2_hash).parseHexStr(), ($ntlmv2_response).parseHexStr())
         session_key = session_base_key
-        var count = 0
-        for i in $session_key:
-            HMAC_SHA256[count] = i
-            inc count
+        HMAC_SHA256_key = ($session_key).hexToByteArray()
+
     var 
         new_ntlmv2_response = toSeq(ntlmv2_response).concat(security_blob_bytes)
         ntlmv2_response_length = @[len(new_ntlmv2_response).byte, 0x00.byte]

@@ -2,7 +2,7 @@
     HelpUtil
 ]#
 
-import tables, strutils, regex, sequtils, algorithm
+import tables, strutils, regex, sequtils, algorithm, net
 
 proc hexToNormalHexArray*(hex: string): seq[string] =
     var a = findAndCaptureAll(hex, re"..")
@@ -51,3 +51,19 @@ proc hexToNormalHex*(hex: string): string =
 
 proc pidToByteArray*(pid: int): seq[byte] =
     result = pid.toHex().hexToNormalHex().hexToByteArray().reversed()
+
+proc byteArrayToString*(arr: seq[byte]): string =
+    for i in arr:
+        result.add(i.toHex().hexToNormalHex())
+
+proc getStatusPending*(Status: seq[string]): bool =
+    if Status == @["03", "01", "00", "00"]:
+        result = true
+
+proc recvPacket*(socket: Socket, bufSize, timeout: int): seq[string] =
+    var buf: string
+    try:
+        while socket.recv(buf, 1, timeout) > 0:
+            result.add(buf.toHex())
+    except:
+        discard
