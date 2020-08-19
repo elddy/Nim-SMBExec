@@ -4,12 +4,22 @@
 
 import tables, os, strutils, regex, sequtils, algorithm
 
-proc hexToPSShellcode*(hex: string): string =
+proc hexToPSShellcode(hex: string): string =
     var a = findAndCaptureAll(hex, re"..")
     for b in 0..a.len - 1:
         if a[b][0] == '0':
             a[b] = substr(a[b], 1)
     result = "0x" & a.join(",0x")
+  
+proc checkSigning*(data: seq[string]): bool =
+    if data[70] == "03":
+        result = true 
+
+proc checkDialect*(data: seq[string]): string =
+    if data[4..7] == @["FF", "53", "4D", "42"]:
+        result = "SMB1"
+    else:
+        result = "SMB2"
 
 proc NewPacketSMBHeader(command, flags1, flags2, treeID, processID, userID: seq[byte]): OrderedTable[string, seq[byte]] =
     

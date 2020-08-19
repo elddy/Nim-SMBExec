@@ -7,6 +7,10 @@ import tables, strutils, sequtils, algorithm
 
 var messageID* = 1
 
+proc checkAuth*(data: seq[string]): bool =
+    if data[12..15] == @["00", "00", "00", "00"]:
+        result = true
+
 proc NewPacketNTLMSSPNegotiate*(negotiateFlags: seq[byte], version: seq[byte]): OrderedTable[string, seq[byte]] =
 
     let 
