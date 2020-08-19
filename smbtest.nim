@@ -4,7 +4,7 @@
 
 #SMB1
 
-import net, strutils, sequtils, encodings, SMBv1, SMBv2, SMBv2Helper
+import net, strutils, sequtils, encodings, SMBv1, SMBv2, SMBv2Helper, HelpUtil
 
 proc recvPacket(sock: Socket, bufSize, timeout: int): seq[string] =
     var buf: string

@@ -1,22 +1,9 @@
 #[
     SMBv2 Helper
 ]#
-import tables, strutils, regex, sequtils
+import tables, strutils, regex, sequtils, HelpUtil
 
-proc hexToNormalHexArray*(hex: string): seq[string] =
-    var a = findAndCaptureAll(hex, re"..")
-    for b in a:
-        if b != "00":
-            result.add(b)
-
-proc getBytes*(val: int): seq[byte] =
-    let hexed = val.toHex().hexToNormalHexArray()
-    if hexed.len > 1:
-        result.add(hexed[1].parseHexInt().byte)
-    result.add(hexed[0].parseHexInt().byte)
-    result.concat(@[0x00.byte,0x00.byte])
-
-proc NewPacketSMB2TreeConnectRequest(Buffer: seq[byte]): OrderedTable[string, seq[byte]] =
+proc NewPacketSMB2TreeConnectRequest*(Buffer: seq[byte]): OrderedTable[string, seq[byte]] =
 
     let path_length = getBytes(Buffer.len)[..1]
 
@@ -29,7 +16,7 @@ proc NewPacketSMB2TreeConnectRequest(Buffer: seq[byte]): OrderedTable[string, se
 
     return SMB2TreeConnectRequest
 
-proc NewPacketSMB2CreateRequestFile(NamedPipe: seq[byte]): OrderedTable[string, seq[byte]] =
+proc NewPacketSMB2CreateRequestFile*(NamedPipe: seq[byte]): OrderedTable[string, seq[byte]] =
     
     let name_length = getBytes(NamedPipe.len)[..1]
 
@@ -53,7 +40,7 @@ proc NewPacketSMB2CreateRequestFile(NamedPipe: seq[byte]): OrderedTable[string, 
 
     return SMB2CreateRequestFile
 
-proc NewPacketSMB2ReadRequest(FileID: seq[byte]): OrderedTable[string, seq[byte]] =
+proc NewPacketSMB2ReadRequest*(FileID: seq[byte]): OrderedTable[string, seq[byte]] =
 
     var SMB2ReadRequest = initOrderedTable[string, seq[byte]]()
     SMB2ReadRequest.add("StructureSize",@[0x31.byte,0x00.byte])
@@ -71,7 +58,7 @@ proc NewPacketSMB2ReadRequest(FileID: seq[byte]): OrderedTable[string, seq[byte]
 
     return SMB2ReadRequest
 
-proc NewPacketSMB2WriteRequest(FileID: seq[byte], RPCLength: int): OrderedTable[string, seq[byte]] =
+proc NewPacketSMB2WriteRequest*(FileID: seq[byte], RPCLength: int): OrderedTable[string, seq[byte]] =
 
     let write_length = getBytes(RPCLength)
 
@@ -89,7 +76,7 @@ proc NewPacketSMB2WriteRequest(FileID: seq[byte], RPCLength: int): OrderedTable[
 
     return SMB2WriteRequest
 
-proc NewPacketSMB2CloseRequest(FileID: seq[byte]): OrderedTable[string, seq[byte]] =
+proc NewPacketSMB2CloseRequest*(FileID: seq[byte]): OrderedTable[string, seq[byte]] =
 
     var SMB2CloseRequest = initOrderedTable[string, seq[byte]]()
     SMB2CloseRequest.add("StructureSize",@[0x18.byte,0x00.byte])
@@ -99,7 +86,7 @@ proc NewPacketSMB2CloseRequest(FileID: seq[byte]): OrderedTable[string, seq[byte
 
     return SMB2CloseRequest
 
-proc NewPacketSMB2TreeDisconnectRequest(): OrderedTable[string, seq[byte]] =    
+proc NewPacketSMB2TreeDisconnectRequest*(): OrderedTable[string, seq[byte]] =    
     
     var SMB2TreeDisconnectRequest = initOrderedTable[string, seq[byte]]()
     SMB2TreeDisconnectRequest.add("StructureSize",@[0x04.byte,0x00.byte])
@@ -107,7 +94,7 @@ proc NewPacketSMB2TreeDisconnectRequest(): OrderedTable[string, seq[byte]] =
 
     return SMB2TreeDisconnectRequest
 
-proc NewPacketSMB2SessionLogoffRequest(): OrderedTable[string, seq[byte]] =    
+proc NewPacketSMB2SessionLogoffRequest*(): OrderedTable[string, seq[byte]] =    
     
     var SMB2SessionLogoffRequest = initOrderedTable[string, seq[byte]]()
     SMB2SessionLogoffRequest.add("StructureSize",@[0x04.byte,0x00.byte])

@@ -2,30 +2,10 @@
     NTLM
 ]#
 
-import tables, os, strutils, regex, sequtils, algorithm
+import HelpUtil
+import tables, strutils, sequtils, algorithm
 
 var messageID* = 1
-
-proc hexToPSShellcode*(hex: string): string =
-    var a = findAndCaptureAll(hex, re"..")
-    for b in 0..a.len - 1:
-        if a[b][0] == '0':
-            a[b] = substr(a[b], 1)
-    result = "0x" & a.join(",0x")
-
-proc stringToByteArray(str: string): seq[byte] =
-    for i in str.toHex().hexToPSShellcode().split(","):
-        result.add(i.parseHexInt().byte)
-
-proc hexToByteArray(str: string): seq[byte] =
-    for i in str.hexToPSShellcode().split(","):
-        result.add(i.parseHexInt().byte)
-
-proc hexToNormalHex*(hex: string): string =
-    var a = findAndCaptureAll(hex, re"..")
-    for b in a:
-        if b != "00":
-            result.add(b)
 
 proc NewPacketNTLMSSPNegotiate*(negotiateFlags: seq[byte], version: seq[byte]): OrderedTable[string, seq[byte]] =
 

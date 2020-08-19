@@ -2,7 +2,8 @@
     SMBv2 Negotiate
 ]#
 
-import tables, os, strutils, regex, sequtils, algorithm, NTLM, nativesockets, random
+import HelpUtil
+import tables, os, strutils, sequtils, algorithm, NTLM, nativesockets, random
 from hmac import hmac_md5
 import md5
 import nimSHA2 except toHex
@@ -10,41 +11,6 @@ import nimSHA2 except toHex
 randomize()
 
 var session_ID: seq[byte]
-
-proc hexToPSShellcode*(hex: string): string =
-    var a = findAndCaptureAll(hex, re"..")
-    # for b in 0..a.len - 1:
-    #     if a[b][0] == '0':
-    #         a[b] = substr(a[b], 1)
-    result = "0x" & a.join(",0x")
-
-proc convertToByteArray(tab: OrderedTable): seq[byte] =
-    for v in tab.values:
-        result.add(v)
-
-proc GetUInt16DataLength(start: int, data: seq[byte]): int =
-    let data_length = ($(data[start])).parseInt()
-
-    return data_length
-
-proc unicodeGetBytes*(str: string): seq[byte] =
-    for i in str.toHex().hexToPSShellcode().split(","):
-        result.add(i.parseHexInt().byte)
-        result.add(0x00.byte)
-
-proc stringToByteArray*(str: string): seq[byte] =
-    for i in str.toHex().hexToPSShellcode().split(","):
-        result.add(i.parseHexInt().byte)
-
-proc hexToByteArray*(str: string): seq[byte] =
-    for i in str.hexToPSShellcode().split(","):
-        result.add(i.parseHexInt().byte)
-
-proc hexToNormalHex*(hex: string): string =
-    var a = findAndCaptureAll(hex, re"..")
-    for b in a:
-        if b != "00":
-            result.add(b)
 
 proc NewPacketSMB2Header(command: seq[byte], creditRequest: seq[byte], signing: bool, messageID: seq[byte], processID, treeID, sessionID: seq[byte]): OrderedTable[string, seq[byte]] =
     var flags: seq[byte]
