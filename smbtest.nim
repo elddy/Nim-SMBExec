@@ -5,9 +5,9 @@
 #SMB1
 
 import net, strutils, sequtils, HelpUtil, SMB
-
-var smb = newSMB2("192.168.1.22", ".", "administrator", "47bf8039a8506cd67c524a03ff84ba4e")
-echo smb.connect()
+let hash = toNTLMHash("Aa123456")
+var smb = newSMB2("192.168.1.22", ".", "administrator", hash) #"47bf8039a8506cd67c524a03ff84ba4e")
+discard smb.connect()
 
 let 
     SMBPath = r"\\" & smb.target & r"\IPC$"

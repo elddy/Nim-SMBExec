@@ -1,4 +1,4 @@
-import net, strutils, SMBv1, SMBv2, NTLM, hash
+import net, strutils, SMBv1, SMBv2, NTLM, hashlib/rhash/md4, encodings
 
 type
     SMB2* = ref object
@@ -75,4 +75,8 @@ proc connect*(smb: SMB2): bool =
 proc close*(smb: SMB2): bool =
     smb.socket.close()
 
-#proc toHash(password: string): string =
+proc toNTLMHash*(password: string): string =
+    # Counts the hash for empty string, returns a RHASH_MD4 object
+    var hash = count[RHASH_MD4](password.convert("UTF-16"))
+
+    return $hash
