@@ -10,9 +10,12 @@ import nimSHA2 except toHex
 
 randomize()
 
-var session_ID: seq[byte]
+var 
+    session_ID*: seq[byte] = @[0x00.byte,0x00.byte,0x00.byte,0x00.byte,0x00.byte,0x00.byte,0x00.byte,0x00.byte]
+    process_ID*: seq[byte] = pidToByteArray(getCurrentProcessId())
+    tree_ID*: seq[byte] = @[0x00.byte,0x00.byte,0x00.byte,0x00.byte]
 
-proc NewPacketSMB2Header(command: seq[byte], creditRequest: seq[byte], signing: bool, messageID: seq[byte], processID, treeID, sessionID: seq[byte]): OrderedTable[string, seq[byte]] =
+proc NewPacketSMB2Header*(command: seq[byte], creditRequest: seq[byte], signing: bool, messageID: seq[byte], processID, treeID, sessionID: seq[byte]): OrderedTable[string, seq[byte]] =
     var flags: seq[byte]
     if signing:
         flags = @[0x08.byte,0x00.byte,0x00.byte,0x00.byte]
@@ -42,7 +45,7 @@ proc NewPacketSMB2Header(command: seq[byte], creditRequest: seq[byte], signing: 
     SMB2Header.add("Signature", @[0x00.byte,0x00.byte,0x00.byte,0x00.byte,0x00.byte,0x00.byte,0x00.byte,0x00.byte,0x00.byte,0x00.byte,0x00.byte,0x00.byte,0x00.byte,0x00.byte,0x00.byte,0x00.byte]) # $SMB2Header.Add("Signature",[Byte[]](0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00))
     return SMB2Header
 
-proc NewPacketSMB2NegotiateProtocolRequest(): OrderedTable[string, seq[byte]] =
+proc NewPacketSMB2NegotiateProtocolRequest*(): OrderedTable[string, seq[byte]] =
 
     var SMB2NegotiateProtocolRequest = initOrderedTable[string, seq[byte]]() # $SMB2NegotiateProtocolRequest = New-Object System.Collections.Specialized.OrderedDictionary
     SMB2NegotiateProtocolRequest.add("StructureSize",@[0x24.byte,0x00.byte])  
@@ -58,7 +61,7 @@ proc NewPacketSMB2NegotiateProtocolRequest(): OrderedTable[string, seq[byte]] =
     SMB2NegotiateProtocolRequest.add("Dialect2",@[0x10.byte,0x02.byte])
     return SMB2NegotiateProtocolRequest
 
-proc NewPacketNetBIOSSessionService(headerLength, dataLength: int): OrderedTable[string, seq[byte]] =
+proc NewPacketNetBIOSSessionService*(headerLength, dataLength: int): OrderedTable[string, seq[byte]] =
     var NetBIOSSessionService = initOrderedTable[string, seq[byte]]() # $NetBIOSSessionService = New-Object System.Collections.Specialized.OrderedDictionary
 
     var length: seq[byte]
@@ -70,21 +73,9 @@ proc NewPacketNetBIOSSessionService(headerLength, dataLength: int): OrderedTable
     NetBIOSSessionService.add("Length", length)
     return NetBIOSSessionService
 
-
 proc getSMBv2NegoPacket*(): string =
-    let process_ID = getCurrentProcessId().toHex().split("00").join()
-    var reversing = (process_ID.hexToPSShellcode().split(","))
-
-    let rev = reversed(reversing[..(reversing.len() - 1)])
-    var revBytes: seq[byte]
-    for b in rev:
-        revBytes.add((b.parseHexInt()).byte)
     let 
-        tree_ID = @[0x00.byte,0x00.byte,0x00.byte,0x00.byte]
-        session_ID = @[0x00.byte,0x00.byte,0x00.byte,0x00.byte,0x00.byte,0x00.byte,0x00.byte,0x00.byte]
-
-    let 
-        smb2Header = convertToByteArray NewPacketSMB2Header(@[0x00.byte,0x00.byte], @[0x00.byte,0x00.byte], false, @[messageID.byte], revBytes, tree_ID, session_ID)
+        smb2Header = convertToByteArray NewPacketSMB2Header(@[0x00.byte,0x00.byte], @[0x00.byte,0x00.byte], false, @[messageID.byte], process_ID, tree_ID, session_ID)
         smb2Data = convertToByteArray NewPacketSMB2NegotiateProtocolRequest()
         netBiosSession = convertToByteArray NewPacketNetBIOSSessionService(smb2Header.len(), smb2Data.len())
         fullPacket = concat(netBiosSession, smb2Header, smb2Data)
@@ -94,20 +85,9 @@ proc getSMBv2NegoPacket*(): string =
         strPacket &= p.toHex()
     return (strPacket).parseHexStr()
 
-
 proc getSMBv2NTLMNego*(signing: bool): string =
     inc messageID
-    let process_ID = getCurrentProcessId().toHex().split("00").join()
-    var reversing = (process_ID.hexToPSShellcode().split(","))
-
-    let rev = reversed(reversing[..(reversing.len() - 1)])
-    var revBytes: seq[byte]
-    for b in rev:
-        revBytes.add((b.parseHexInt()).byte)
-    let 
-        tree_ID = @[0x00.byte,0x00.byte,0x00.byte,0x00.byte]
-        session_ID = @[0x00.byte,0x00.byte,0x00.byte,0x00.byte,0x00.byte,0x00.byte,0x00.byte,0x00.byte]
-    
+         
     var negotiate_flags: seq[byte]
     if signing:
         negotiate_flags = @[0x15.byte,0x82.byte,0x08.byte,0xa0.byte] # Signing true
@@ -115,7 +95,7 @@ proc getSMBv2NTLMNego*(signing: bool): string =
         negotiate_flags = @[0x05.byte,0x80.byte,0x08.byte,0xa0.byte] # Signing false
     
     let
-        smb2Header = convertToByteArray NewPacketSMB2Header(@[0x01.byte,0x00.byte], @[0x1f.byte,0x00.byte], false, @[messageID.byte], revBytes, tree_ID, session_ID)
+        smb2Header = convertToByteArray NewPacketSMB2Header(@[0x01.byte,0x00.byte], @[0x1f.byte,0x00.byte], false, @[messageID.byte], process_ID, tree_ID, session_ID)
         NTLMSSPnegotiate = convertToByteArray NewPacketNTLMSSPNegotiate(negotiate_flags, @[])
         smb2Data = convertToByteArray NewPacketSMB2SessionSetupRequest(NTLMSSPnegotiate)
         netBiosSession = convertToByteArray NewPacketNetBIOSSessionService(smb2Header.len(), smb2Data.len())
@@ -243,18 +223,8 @@ proc getSMBv2NTLMSSP*(client_receive: string, hash: string, domain: string, user
 
 proc getSMBv2NTLMAuth*(NTLMSSP_response: seq[byte]): string =
     inc messageID
-    let process_ID = getCurrentProcessId().toHex().split("00").join()
-    var reversing = (process_ID.hexToPSShellcode().split(","))
-
-    let rev = reversed(reversing[..(reversing.len() - 1)])
-    var revBytes: seq[byte]
-    for b in rev:
-        revBytes.add((b.parseHexInt()).byte)
     let 
-        tree_ID = @[0x00.byte,0x00.byte,0x00.byte,0x00.byte]
-
-    let 
-        smb2Header = convertToByteArray NewPacketSMB2Header(@[0x01.byte,0x00.byte], @[0x01.byte,0x00.byte], false, @[messageID.byte], revBytes, tree_ID, session_ID)
+        smb2Header = convertToByteArray NewPacketSMB2Header(@[0x01.byte,0x00.byte], @[0x01.byte,0x00.byte], false, @[messageID.byte], process_ID, tree_ID, session_ID)
         NTLMSSP_auth = convertToByteArray NewPacketNTLMSSPAuth(NTLMSSP_response)
         smb2Data = convertToByteArray NewPacketSMB2SessionSetupRequest(NTLMSSP_auth)
         netBiosSession = convertToByteArray NewPacketNetBIOSSessionService(smb2Header.len(), smb2Data.len())
@@ -266,17 +236,14 @@ proc getSMBv2NTLMAuth*(NTLMSSP_response: seq[byte]): string =
         strPacket &= p.toHex()
     return (strPacket).parseHexStr()
 
-
-when isMainModule:
-    let 
-        key = "47bf8039a8506cd67c524a03ff84ba4e".parseHexStr() # Good
-        data = "ADMINISTRATOR".unicodeGetBytes().concat(".".unicodeGetBytes()) # Good
-    var 
-        newData: seq[string]
-    for j in data:
-        newData.add j.toHex().parseHexStr()
-    echo "Key: ", key
-    echo "Data: ", newData
-    echo ($hmac_md5(key, newData.join())).hexToByteArray()
-
-
+# when isMainModule:
+    # let 
+    #     key = "47bf8039a8506cd67c524a03ff84ba4e".parseHexStr() # Good
+    #     data = "ADMINISTRATOR".unicodeGetBytes().concat(".".unicodeGetBytes()) # Good
+    # var 
+    #     newData: seq[string]
+    # for j in data:
+    #     newData.add j.toHex().parseHexStr()
+    # echo "Key: ", key
+    # echo "Data: ", newData
+    # echo ($hmac_md5(key, newData.join())).hexToByteArray()

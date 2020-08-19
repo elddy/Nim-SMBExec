@@ -2,7 +2,7 @@
     HelpUtil
 ]#
 
-import tables, strutils, regex, sequtils
+import tables, strutils, regex, sequtils, algorithm
 
 proc hexToNormalHexArray*(hex: string): seq[string] =
     var a = findAndCaptureAll(hex, re"..")
@@ -48,3 +48,6 @@ proc hexToNormalHex*(hex: string): string =
     for b in a:
         if b != "00":
             result.add(b)
+
+proc pidToByteArray*(pid: int): seq[byte] =
+    result = pid.toHex().hexToNormalHex().hexToByteArray().reversed()
