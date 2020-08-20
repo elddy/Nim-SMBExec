@@ -78,7 +78,7 @@ proc treeConnect(socket: Socket): Stage =
         else:
             result = StatusReceived
     except Exception as E:
-        echo "[-] Session connection is closed, Error: ", E.msg
+        printC Error, "Session connection is closed, Error: " & E.msg
         result = Exit
 
 proc treeDisconnect(): Stage =
@@ -106,7 +106,7 @@ proc treeDisconnect(): Stage =
 proc checkAccess(): Stage =
     if client_receive[128..131] == @["00", "00", "00", "00"] and client_receive[108..127] != @["00", "00", "00", "00","00", "00", "00", "00","00", "00", "00", "00","00", "00", "00", "00","00", "00", "00", "00"]:
         SMB_service_manager_context_handle = client_receive[108..127].join().hexToByteArray()
-        echo "The user has Service Control Manager write privilege on the target"
+        printC Success, "The user has Service Control Manager write privilege on the target"
         if SMB_execute:
             
             SCM_data = convertToByteArray NewPacketSCMCreateServiceW(SMB_service_manager_context_handle, SMBServiceBytes, SMBServiceLength, SMBExecCommandBytes, SMBExecCommandLengthBytes)
@@ -120,11 +120,11 @@ proc checkAccess(): Stage =
             result = CloseServiceHandle
         
     elif client_receive[128..131] == @["05", "00", "00", "00"]:
-        echo "The user does not have Service Control Manager write privilege on the target"
+        printC Error, "The user does not have Service Control Manager write privilege on the target"
         result = Exit 
     
     else:
-        echo "Something went wrong with the target"
+        printC Error, "Something went wrong with the target"
         result = Exit
 
 proc closeRequset(): Stage =
@@ -221,8 +221,6 @@ proc readRequest(): Stage =
 proc statusPending(socket: Socket): Stage =
     if client_receive[12..15] != @["03", "01", "00", "00"]:
         result = StatusReceived
-    # else:
-    #     result = stage
 
 proc statusReceived(): Stage =
     case stage_current:
@@ -299,7 +297,6 @@ proc rpcBind(): Stage =
     
     let fullPacket = concat(netBiosSession, SMB2_header, SMB2_data, RPC_data)
 
-
     ## Make packet
     client_send = buildPacket(fullPacket)
 
@@ -318,7 +315,7 @@ proc closeServiceHandle(): Stage =
     var packet_SCM_data: OrderedTable[string, seq[byte]] 
 
     if SMB_close_service_handle_stage == 1:
-        echo "Service deleted"
+        printC Info, "Service deleted"
         packet_SCM_data = NewPacketSCMCloseServiceHandle(SMB_service_context_handle)
     
     else:
@@ -350,7 +347,6 @@ proc closeServiceHandle(): Stage =
     result = SendReceive
 
 proc createServiceW(): Stage =
-
     stage_current = stage
     inc messageID
     var packet_SMB2_header = NewPacketSMB2Header(@[0x09.byte,0x00.byte], @[0x01.byte,0x00.byte], signing, @[messageID.byte], processID, treeID, sessionID)
@@ -507,7 +503,7 @@ proc createServiceW_Last(): Stage =
 
 proc startServiceW(): Stage =
     if client_receive[132..135] == @["00", "00", "00", "00"]:
-        echo "Service created on the target"
+        printC Success, "Service created on the target"
         SMB_service_context_handle = client_receive[112..131].join().hexToByteArray()
         stage_current = stage
         inc messageID
@@ -530,21 +526,21 @@ proc startServiceW(): Stage =
     
         let fullPacket = concat(NetBIOS_session_service, SMB2_header, SMB2_data, RPC_data, SCM_data)
         client_send = buildPacket(fullPacket)
-        echo "Trying to execute command on the target"
+        printC Info, "Trying to execute command on the target"
         result = SendReceive
     elif client_receive[132..135] == @["31", "04", "00", "00"]:
-        echo "Service creation failed on target"
+        printC Error, "Service creation failed on target"
         result = Exit
     else:
-        echo "Service creation fault context mismatch"
+        printC Error, "Service creation fault context mismatch"
         result = Exit
 
 proc deleteServiceW(): Stage =
 
     if client_receive[108..111] == @["1d","04","00","00"]:
-        echo "[+] Command executed with service" 
+        printC Success, "Command executed with service" 
     elif client_receive[108..111] == @["02","00","00","00"]: 
-        echo "[-] Service failed to start"
+        printC Error, "Service failed to start"
 
     stage_current = stage
     inc messageID

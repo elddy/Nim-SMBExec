@@ -12,4 +12,5 @@ let response = smb.connect()
 
 smb.exec("mkdir c:\\kevinWeAreTheChampions", response)
 
-discard smb.close()
+smb.close()
+echo "SMB closed properly" 

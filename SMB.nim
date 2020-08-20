@@ -33,14 +33,14 @@ proc connect*(smb: SMB2): seq[string] =
     recvClient = smb.socket.recvPacket(1024, 100)
 
     ## Check Dialect
-    echo "Dialect: ", checkDialect recvClient
+    printC(Info, "Dialect: " & checkDialect recvClient)
 
     ## Check Signing
     signing = checkSigning recvClient
     if signing:
-        echo "Signing Enabled"
+        printC Info, "Signing Enabled"
     else:
-        echo "Signing Disabled"
+        printC Info, "Signing Disabled"
 
     ## SMBv2 negotiate
     smb.socket.send(getSMBv2NegoPacket())
@@ -57,10 +57,10 @@ proc connect*(smb: SMB2): seq[string] =
     recvClient = smb.socket.recvPacket(1024, 100)
 
     if checkAuth recvClient:
-        echo "Successfully logged on!"
+        printC Success, "Successfully logged on!"
         stage = TreeConnect
     else:
-        echo "Login failed"
+        printC Error, "Login failed"
         stage = Exit
 
     result = recvClient
@@ -68,7 +68,7 @@ proc connect*(smb: SMB2): seq[string] =
 proc exec*(smb: SMB2, command: string, recvClient: seq[string]) =
     execStages(smb.target, smb.serviceName, command, smb.socket, recvClient)
 
-proc close*(smb: SMB2): bool =
+proc close*(smb: SMB2) =
     smb.socket.close()
 
 proc toNTLMHash*(password: string): string =

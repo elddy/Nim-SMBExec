@@ -2,7 +2,11 @@
     HelpUtil
 ]#
 
-import tables, strutils, regex, sequtils, algorithm, net
+import tables, strutils, regex, sequtils, algorithm, net, terminal
+
+type
+    STATUS* = enum
+        Error, Success, Info
 
 proc hexToNormalHexArray*(hex: string): seq[string] =
     var a = findAndCaptureAll(hex, re"..")
@@ -77,3 +81,15 @@ proc buildPacket*(bytePacket: seq[byte]): string =
         result &= b.toHex()
     result.parseHexStr()
 
+#[
+    Prints nice and all
+]#
+proc printC*(stat: STATUS, text: string) = 
+    case stat
+    of Error:
+        stdout.styledWrite(fgRed, "[-] ")
+    of Success:
+        stdout.styledWrite(fgGreen, "[+] ")
+    of Info:
+        stdout.styledWrite(fgYellow, "[*] ")
+    echo text
