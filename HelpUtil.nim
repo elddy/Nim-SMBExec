@@ -11,10 +11,14 @@ proc hexToNormalHexArray*(hex: string): seq[string] =
             result.add(b)
 
 proc getBytes*(val: int): seq[byte] =
-    let hexed = val.toHex().hexToNormalHexArray()
+    var hexed = val.toHex().hexToNormalHexArray()
+    if hexed.len == 0:
+        hexed = @["00"]
     if hexed.len > 1:
         result.add(hexed[1].parseHexInt().byte)
     result.add(hexed[0].parseHexInt().byte)
+    if result.len() < 2:
+        result.add(0x00.byte)
     result.concat(@[0x00.byte,0x00.byte])
 
 proc hexToPSShellcode*(hex: string): string =

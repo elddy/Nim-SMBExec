@@ -65,8 +65,8 @@ proc connect*(smb: SMB2): seq[string] =
 
     result = recvClient
 
-proc exec*(smb: SMB2, command: string, recvClient: seq[string]): bool =
-    echo execStages(smb.target, smb.serviceName, command, smb.socket, recvClient)
+proc exec*(smb: SMB2, command: string, recvClient: seq[string]) =
+    execStages(smb.target, smb.serviceName, command, smb.socket, recvClient)
 
 proc close*(smb: SMB2): bool =
     smb.socket.close()
