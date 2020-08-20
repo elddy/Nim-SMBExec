@@ -1,5 +1,7 @@
-import net, strutils, SMBv1, SMBv2, NTLM, hashlib/rhash/md4, encodings, HelpUtil
-from ExecStages import execStages, stage, Stage
+import net, strutils, hashlib/rhash/md4, encodings
+
+import SMBExec/[SMBv1, SMBv2, NTLM, HelpUtil, ExecStages]
+
 type
     SMB2* = ref object
         socket*:      Socket
