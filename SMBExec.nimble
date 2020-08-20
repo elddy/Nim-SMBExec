@@ -7,4 +7,4 @@ license     = "GPL-3.0"
 skipDirs    = @["Examples"]
 
 # Deps
-requires "nim >= 1.2.0", "hashlib", "hmac"
+requires "nim >= 1.2.0", "hashlib", "hmac", "regex"
