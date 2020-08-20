@@ -66,13 +66,13 @@ proc connect*(smb: SMB2): seq[string] =
     result = recvClient
 
 proc exec*(smb: SMB2, command: string, recvClient: seq[string]): bool =
-    echo execStages(smb.target, smb.serviceName, command, recvClient)
+    echo execStages(smb.target, smb.serviceName, command, smb.socket, recvClient)
 
 proc close*(smb: SMB2): bool =
     smb.socket.close()
 
-# proc toNTLMHash*(password: string): string =
-#     # Counts the hash for empty string, returns a RHASH_MD4 object
-#     var hash = count[RHASH_MD4](password.convert("UTF-16"))
+proc toNTLMHash*(password: string): string =
+    # Counts the hash for empty string, returns a RHASH_MD4 object
+    var hash = count[RHASH_MD4](password.convert("UTF-16"))
 
-#     return $hash
+    return $hash

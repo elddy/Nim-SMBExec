@@ -82,10 +82,7 @@ proc getSMBv2NegoPacket*(): string =
         netBiosSession = convertToByteArray NewPacketNetBIOSSessionService(smb2Header.len(), smb2Data.len())
         fullPacket = concat(netBiosSession, smb2Header, smb2Data)
     
-    var strPacket: string
-    for p in fullPacket:
-        strPacket &= p.toHex()
-    return (strPacket).parseHexStr()
+    return buildPacket(fullPacket)
 
 proc getSMBv2NTLMNego*(signing: bool): string =
     inc messageID
@@ -102,10 +99,8 @@ proc getSMBv2NTLMNego*(signing: bool): string =
         smb2Data = convertToByteArray NewPacketSMB2SessionSetupRequest(NTLMSSPnegotiate)
         netBiosSession = convertToByteArray NewPacketNetBIOSSessionService(smb2Header.len(), smb2Data.len())
         fullPacket = concat(netBiosSession, smb2Header, smb2Data)
-    var strPacket: string
-    for p in fullPacket:
-        strPacket &= p.toHex()
-    return (strPacket).parseHexStr()
+    
+    return buildPacket(fullPacket)
 
 proc getSMBv2NTLMSSP*(client_receive: string, hash: string, domain: string, username: string, signing: bool): seq[byte] =
     
@@ -230,10 +225,7 @@ proc getSMBv2NTLMAuth*(NTLMSSP_response: seq[byte]): string =
         fullPacket = concat(netBiosSession, smb2Header, smb2Data)
 
     ## Make full packet
-    var strPacket: string
-    for p in fullPacket:
-        strPacket &= p.toHex()
-    return (strPacket).parseHexStr()
+    return buildPacket(fullPacket)
 
 # when isMainModule:
     # let 

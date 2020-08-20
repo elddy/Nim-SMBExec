@@ -67,3 +67,9 @@ proc recvPacket*(socket: Socket, bufSize, timeout: int): seq[string] =
             result.add(buf.toHex())
     except:
         discard
+
+proc buildPacket*(bytePacket: seq[byte]): string =
+    for b in bytePacket:
+        result &= b.toHex()
+    result.parseHexStr()
+

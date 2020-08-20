@@ -33,8 +33,63 @@ var
     client_receive: seq[string]
     client_send: string
     stage*: Stage
+    stage_current: Stage
     file_ID*: seq[byte]
+    SMB_close_service_handle_stage: int
 
+proc treeConnect(socket: Socket): Stage =
+    treeID = client_receive[40..43].join().hexToByteArray()
+    stage_current = stage
+    inc messageID
+
+    var 
+        packet_SMB2_data = NewPacketSMB2Header(@[0x03.byte, 0x00.byte], @[0x01.byte, 0x00.byte], signing, @[messageID.byte], processID, treeID, sessionID)
+        SMB2_header = convertToByteArray packet_SMB2_data
+        SMB2_data = convertToByteArray NewPacketSMB2TreeConnectRequest(SMBPathBytes)
+        NetBIOS_session_service = convertToByteArray NewPacketNetBIOSSessionService(SMB2_header.len, SMB2_data.len)
+
+    if signing:
+        let 
+            SMB2_sign = SMB2_header.concat(SMB2_data)
+            SMB2_signature = (($hmac_sha256(HMAC_SHA256_key.byteArrayToString().parseHexStr(), SMB2_sign.byteArrayToString().parseHexStr())).hexToByteArray())[..15]
+        packet_SMB2_data["Signature"] = SMB2_signature
+        SMB2_header = convertToByteArray packet_SMB2_data
+
+    let fullPacket = concat(NetBIOS_session_service, SMB2_header, SMB2_data)
+    
+    ## Make packet
+    client_send = buildPacket(fullPacket)
+    
+    try:
+        socket.send(client_send)
+        client_receive = socket.recvPacket(1024, 100)
+        if (getStatusPending(client_receive[12..15])):
+            result = StatusPending
+        else:
+            result = StatusReceived
+    except Exception as E:
+        echo "[-] Session connection is closed, Error: ", E.msg
+        result = Exit
+
+proc treeDisconnect(): Stage =
+    inc messageID
+    var 
+        SMB2_header = convertToByteArray NewPacketSMB2Header(@[0x04.byte,0x00.byte], @[0x01.byte,0x00.byte], signing, @[messageID.byte], processID, treeID, sessionID)
+        packet_SMB2_data = NewPacketSMB2TreeDisconnectRequest()
+    let 
+        SMB2_data = convertToByteArray packet_SMB2_data
+        NetBIOS_session_service = convertToByteArray NewPacketNetBIOSSessionService(SMB2_header.len(), SMB2_data.len())
+
+    if signing:
+        let 
+            SMB2_sign = SMB2_header.concat(SMB2_data)
+            SMB2_signature = (($hmac_sha256(HMAC_SHA256_key.byteArrayToString().parseHexStr(), SMB2_sign.byteArrayToString().parseHexStr())).hexToByteArray())[..15]
+        packet_SMB2_data["Signature"] = SMB2_signature
+        SMB2_header = convertToByteArray packet_SMB2_data
+
+    let fullpacket = concat(NetBIOS_session_service, SMB2_header, SMB2_data)
+    client_send = buildPacket(fullpacket)
+    stage = SendReceive
 
 proc checkAccess(): Stage =
     if client_receive[128..131] == @["00", "00", "00", "00"] and client_receive[108..127] != @["00", "00", "00", "00","00", "00", "00", "00","00", "00", "00", "00","00", "00", "00", "00","00", "00", "00", "00"]:
@@ -59,6 +114,7 @@ proc checkAccess(): Stage =
 
 proc closeRequset(): Stage =
     inc messageID
+    stage_current = stage
     var 
         smb2Header = convertToByteArray NewPacketSMB2Header(@[0x06.byte,0x00.byte], @[0x01.byte,0x00.byte], false, @[messageID.byte], process_ID, tree_ID, session_ID)
         smb2Data = convertToByteArray NewPacketSMB2CloseRequest(file_ID)
@@ -78,14 +134,12 @@ proc closeRequset(): Stage =
     let fullPacket = concat(netBiosSession, smb2Header, smb2Data)
 
     ## Make packet
-    var strPacket: string
-    for p in fullPacket:
-        strPacket &= p.toHex()
-    client_send = (strPacket).parseHexStr()
+    client_send = buildPacket(fullPacket)
     result = SendReceive
 
 proc createRequest(sock: Socket): Stage =
     inc messageID
+    stage_current = stage
     var 
         SMB_named_pipe_bytes = @[0x73.byte,0x00.byte,0x76.byte,0x00.byte,0x63.byte,0x00.byte,0x63.byte,0x00.byte,0x74.byte,0x00.byte,0x6c.byte,0x00.byte]
         packet_SMB2_header = NewPacketSMB2Header(@[0x05.byte,0x00.byte], @[0x01.byte,0x00.byte], signing, @[messageID.byte], process_ID, tree_ID, session_ID)
@@ -109,10 +163,7 @@ proc createRequest(sock: Socket): Stage =
     let fullPacket = concat(netBiosSession, smb2Header, smb2Data)
 
     ## Make packet
-    var strPacket: string
-    for p in fullPacket:
-        strPacket &= p.toHex()
-    client_send = (strPacket).parseHexStr()
+    client_send = buildPacket(fullPacket)
 
     sock.send(client_send)
 
@@ -123,8 +174,27 @@ proc createRequest(sock: Socket): Stage =
     else:
         result = StatusReceived
 
-proc execStages*(target, service, command: string, responseFromClient: seq[string]): bool =
-    
+proc statusPending(): Stage =
+    if client_receive[12..15] != @["03", "01", "00", "00"]:
+        stage = StatusReceived
+
+proc statusReceived(): Stage =
+    case stage_current:
+    of CloseRequset:
+        stage = TreeDisconnect
+    of CloseServiceHandle:
+        if SMB_close_service_handle_stage == 2:
+            stage = CloseServiceHandle
+        else:
+            stage = CloseRequset
+    of CreateRequest:
+        file_ID = client_receive[132..147].join().hexToByteArray()
+        if stage != Exit:
+            stage = RPCBind
+    else:
+        discard
+
+proc execStages*(target, service, command: string, socket: Socket, responseFromClient: seq[string]): bool = 
     client_receive = responseFromClient
     SMBPath = r"\\" & target & r"\IPC$"
     SMBPathBytes = SMBPath.unicodeGetBytes()
@@ -151,16 +221,49 @@ proc execStages*(target, service, command: string, responseFromClient: seq[strin
     SMBExecCommandLengthBytes = getBytes((SMBExecCommand.len() / 2).int)
     SMBSplitIndex = 4256
 
-    discard checkAccess()
     ## Start checking stages
-    # while stage != Exit:
-    #     case stage
-    #     of CheckAccess:
-    #         stage = checkAccess()
-    #     of CloseRequset:
-    #         stage = closeRequset()
-    #     of CreateRequest:
-    #         stage = createRequest(SMB.socket)
-    return true
+    while stage != Exit:
+        case stage
+        of CheckAccess:
+            stage = checkAccess()
+        of CloseRequset:
+            stage = closeRequset()
+        of TreeConnect:
+            stage = treeConnect(socket)
+        of CreateRequest:
+            stage = createRequest(socket)
+        of Exit:
+            continue
+        of CloseServiceHandle:
+            discard
+        of CreateServiceW:
+            discard
+        of CreateServiceW_First:
+            discard
+        of CreateServiceW_Middle:
+            discard
+        of CreateServiceW_Last:
+            discard
+        of DeleteServiceW:
+            discard
+        of Logoff:
+            discard
+        of OpenSCManagerW:
+            discard
+        of RPCBind:
+            discard
+        of ReadRequest:
+            discard
+        of SendReceive:
+            discard
+        of StartServiceW:
+            discard
+        of StatusPending:
+            discard
+        of StatusReceived:
+            discard
+        of TreeDisconnect:
+            discard
+
 
 
