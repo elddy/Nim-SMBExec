@@ -571,7 +571,11 @@ proc execStages*(target, service, command: string, socket: Socket, responseFromC
     SMBPathBytes = SMBPath.unicodeGetBytes()
     SMBService = service
     SMBServiceBytes = SMBService.unicodeGetBytes()
-    let full_command = "%COMSPEC% /C " & "\"" & command & "\""
+    var full_command: string
+    if not command.contains("%COMSPEC% /C"):
+        full_command = "%COMSPEC% /C " & "\"" & command & "\""
+    else:
+        full_command = command
 
     if SMBServiceBytes.len mod 2 != 0:
         SMBServiceBytes = SMBServiceBytes.concat(@[0x00.byte, 0x00.byte])
