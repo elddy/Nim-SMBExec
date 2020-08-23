@@ -1,7 +1,7 @@
 #[
     SMBv2 Helper
 ]#
-import tables, strutils, regex, sequtils, HelpUtil
+import tables, HelpUtil
 
 proc NewPacketSMB2TreeConnectRequest*(Buffer: seq[byte]): OrderedTable[string, seq[byte]] =
 

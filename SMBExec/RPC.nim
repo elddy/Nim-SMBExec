@@ -1,7 +1,7 @@
 #[
     RPC
 ]#
-import tables, HelpUtil, sequtils
+import tables, HelpUtil
 
 proc NewPacketRPCBind*(FragLength: seq[byte],CallID: int,NumCtxItems: seq[byte],ContextID: seq[byte],UUID: seq[byte],UUIDVersion: seq[byte]): OrderedTable[string, seq[byte]] =
 

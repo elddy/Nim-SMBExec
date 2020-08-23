@@ -6,7 +6,6 @@ import HelpUtil
 import tables, os, strutils, sequtils, algorithm, NTLM, nativesockets, random
 from hmac import hmac_md5
 import md5
-import nimSHA2 except toHex
 
 randomize()
 
