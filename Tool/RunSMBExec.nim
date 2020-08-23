@@ -1,5 +1,5 @@
 #[
-    SMB Pass The Hash example
+    SMB Pass The Hash tool
 ]#
 
 import SMBExec, Help
