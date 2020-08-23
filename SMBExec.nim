@@ -1,4 +1,4 @@
-import net, strutils, hashlib/rhash/md4, encodings
+import net, strutils, hashlib/rhash/md4, encodings, nativesockets
 
 import SMBExec/[SMBv1, SMBv2, NTLM, HelpUtil, ExecStages]
 
@@ -23,6 +23,7 @@ proc newSMB2*(target: string, domain: string, user: string, hash: string, servic
     result = SMB2(socket: newSocket(), target: target, domain: domain, user: user, hash: hash, serviceName: serviceName)
 
 proc connect*(smb: SMB2): seq[string] =
+    smb.socket.getFd().setBlocking(false)
     var 
         recvClient: seq[string]
         response: string
