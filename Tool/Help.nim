@@ -2,9 +2,32 @@
     Help module
 ]#
 
-import parseopt, net, strutils, os
+import parseopt, net, strutils, os, random, terminal
 
 var target*, domain*, user*, hash*, pass*, command*, service*: string
+
+type
+    STATUS* = enum
+        Error, Success, Info
+
+randomize()
+
+#[
+    Prints nice and all
+]#
+proc printC*(stat: STATUS, text: string) = 
+    case stat
+    of Error:
+        stdout.styledWrite(fgRed, "[-] ")
+    of Success:
+        stdout.styledWrite(fgGreen, "[+] ")
+    of Info:
+        stdout.styledWrite(fgYellow, "[*] ")
+    echo text
+
+proc rndStr*(): string =
+  for _ in .. 6:
+    add(result, char(rand(int('A') .. int('z'))))
 
 proc printHelp() =
     when defined windows:
