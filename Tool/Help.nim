@@ -48,7 +48,7 @@ proc checkParams*() =
         p.next()
         case p.kind
         of cmdEnd: break
-        of cmdShortOption, cmdLongOption:
+        of cmdLongOption:
             if p.key.toLower == "target":
                 target = p.val
             elif p.key.toLower == "domain":
@@ -63,9 +63,6 @@ proc checkParams*() =
                 command = p.val
             elif p.key.toLower == "service":
                 service = p.val
-            else:
-                printHelp()
-                quit(-1)
         else:
             break
     if target == "" or domain == "" or user == "" or (hash == "" and pass == "") or command == "":

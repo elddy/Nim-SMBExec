@@ -70,8 +70,11 @@ proc getStatusPending*(Status: seq[string]): bool =
 
 proc recvPacket*(socket: Socket, bufSize, timeout: int): seq[string] =
     var buf: string
-    while socket.recv(buf, 1) > 0:
-        result.add(buf.toHex())
+    try:
+        while socket.recv(buf, 1, timeout) > 0:
+            result.add(buf.toHex())
+    except:
+        discard
 
 proc buildPacket*(bytePacket: seq[byte]): string =
     for b in bytePacket:
