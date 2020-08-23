@@ -34,34 +34,34 @@ proc printHelp() =
         echo """
 Nim SMBExec.
 Usage:
-    SMBExec.exe -target:<IP | Hostname> -domain:<Domain> -user:<Username> -pass:<Password> | -hash:<NT Hash> -command:"<Command>" [-service:<Service Name>]
+    SMBExec.exe --target:<IP | Hostname> --domain:<Domain> --user:<Username> --pass:<Password> | --hash:<NT Hash> --command:"<Command>" [--service:<Service Name>]
     SMBExec.exe (-h | --help)
 Options:
-    -h --help         Show this screen.
-    -target           Target IP or Hostname.
-    -domain           Domain of user (For local user enter ".").
-    -username, -user  Target Username.
-    -password, -pass  Password of user (Optional).
-    -hash             Hash of user password (Required when not using -password).
-    -command          Command to run under the service.
-    -service          Service name of the new created service (Optional).       
+    -h --help           Show this screen.
+    --target            Target IP or Hostname.
+    --domain            Domain of user (For local user enter ".").
+    --username, --user  Target Username.
+    --password, --pass  Password of user (Optional).
+    --hash              Hash of user password (Required when not using -password).
+    --command           Command to run under the service.
+    --service           Service name of the new created service (Optional).       
         """
 
     when defined linux:
         echo """
 Nim SMBExec.
 Usage:
-    ./SMBExec -target:<IP | Hostname> -domain:<Domain> -user:<Username> -pass:<Password> | -hash:<NT Hash> -command:"<Command>" [-service:<Service Name>]
+    ./SMBExec --target:<IP | Hostname> --domain:<Domain> --user:<Username> --pass:<Password> | --hash:<NT Hash> --command:"<Command>" [--service:<Service Name>]
     ./SMBExec (-h | --help)
 Options:
-    -h --help         Show this screen.
-    -target           Target IP or Hostname.
-    -domain           Domain of user (For local user enter ".").
-    -username, -user  Target Username.
-    -password, -pass  Password of user (Optional).
-    -hash             Hash of user password (Required when not using -password).
-    -command          Command to run under the service.
-    -service          Service name of the new created service (Optional).       
+    -h --help           Show this screen.
+    --target            Target IP or Hostname.
+    --domain            Domain of user (For local user enter ".").
+    --username, --user  Target Username.
+    --password, --pass  Password of user (Optional).
+    --hash              Hash of user password (Required when not using -password).
+    --command           Command to run under the service.
+    --service           Service name of the new created service (Optional).       
         """
 
 proc checkParams*() =
