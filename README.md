@@ -3,7 +3,7 @@ SMBExec implementation in Nim - SMBv2 using NTLM Authentication with Pass-The-Ha
 
 ## Install
 ```
-nimble install https://github.com/elddy/Nim-SMBExec
+nimble install SMBExec
 ```
 
 ## Usage
