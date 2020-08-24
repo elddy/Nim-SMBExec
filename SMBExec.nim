@@ -1,4 +1,4 @@
-import net, strutils, hashlib/rhash/md4, encodings
+import net, strutils, hashlib/rhash/md4, encodings, random
 
 import SMBExec/[SMBv1, SMBv2, NTLM, HelpUtil, ExecStages]
 
@@ -19,8 +19,16 @@ proc recvPacketForNTLM(socket: Socket, bufSize, timeout: int): string =
     except:
         discard
 
-proc newSMB2*(target: string, domain: string, user: string, hash: string, serviceName: string = "kaka"): SMB2 =
-    result = SMB2(socket: newSocket(), target: target, domain: domain, user: user, hash: hash, serviceName: serviceName)
+proc randomServiceName: string =
+  for _ in .. 5:
+    add(result, char(rand(int('A') .. int('Z'))))
+
+proc newSMB2*(target: string, domain: string, user: string, hash: string, serviceName: string = ""): SMB2 =
+    var newServiceName = serviceName
+    if serviceName == "":
+        newServiceName = randomServiceName()
+    echo newServiceName
+    result = SMB2(socket: newSocket(), target: target, domain: domain, user: user, hash: hash, serviceName: newServiceName)
 
 proc connect*(smb: SMB2): seq[string] =
     var 
