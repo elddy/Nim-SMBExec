@@ -25,7 +25,7 @@ smb.exec("cmd command", response) # Response from the negotiation
 smb.close() # Close socket
 ```
 ## Support
-### Only supports SMBv2
+#### Only supports SMBv2 Authentication
 
 ## Credits
 Powershell: Invoke-SMBExec - https://github.com/Kevin-Robertson/Invoke-TheHash/blob/master/Invoke-SMBExec.ps1
