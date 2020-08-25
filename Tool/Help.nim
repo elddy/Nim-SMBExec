@@ -25,10 +25,6 @@ proc printC*(stat: STATUS, text: string) =
         stdout.styledWrite(fgYellow, "[*] ")
     echo text
 
-proc rndStr*(): string =
-  for _ in .. 6:
-    add(result, char(rand(int('A') .. int('z'))))
-
 proc printHelp() =
     when defined windows:
         echo """
