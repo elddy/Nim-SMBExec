@@ -83,6 +83,6 @@ proc close*(smb: SMB2) =
 
 proc toNTLMHash*(password: string): string =
     # Counts the hash for empty string, returns a RHASH_MD4 object
-    var hash = count[RHASH_MD4](password.convert("UTF-16"))
+    var hash = count[RHASH_MD4](password.convert("UTF-16LE"))
 
     return $hash
